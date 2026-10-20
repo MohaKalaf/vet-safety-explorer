@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f6f8fb;
+  --ink: #14213d;
+  --slate: #5b6b82;
+  --rule: #d7dee8;
+  --bar: #2f4a7a;
+  --bar-soft: #e3e9f2;
+  --signal: #c0275d;
+  --signal-soft: #fbe7ee;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0f1626;
+    --ink: #e6ebf3;
+    --slate: #9aa8bd;
+    --rule: #26324a;
+    --bar: #8fb0e3;
+    --bar-soft: #1b2740;
+    --signal: #f06a94;
+    --signal-soft: #3a1a29;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-slate: var(--slate);
+  --color-rule: var(--rule);
+  --color-bar: var(--bar);
+  --color-bar-soft: var(--bar-soft);
+  --color-signal: var(--signal);
+  --color-signal-soft: var(--signal-soft);
+  --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+}
