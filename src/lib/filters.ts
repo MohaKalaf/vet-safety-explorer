@@ -32,8 +32,10 @@ export function parseFilters(params: RawParams): SearchFilters {
   return filters;
 }
 
-export function hasFilters(filters: SearchFilters): boolean {
-  return Boolean(filters.ingredient || filters.species);
+// Submitting the form always sends both keys, even blank (?ingredient=&species=).
+// A blank search means "all reports"; no keys at all means a fresh visit.
+export function isSearch(params: RawParams): boolean {
+  return "ingredient" in params || "species" in params;
 }
 
 export function searchHref(filters: SearchFilters): string {

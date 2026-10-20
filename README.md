@@ -50,7 +50,8 @@ An openFDA API key is optional. To use one, copy `.env.example` to
 
 1. **The search lives in the URL.** Searching for lotilaner in dogs goes to
    `/?ingredient=lotilaner&species=Dog`, so every search can be bookmarked or
-   shared. `src/lib/filters.ts` reads and cleans these values.
+   shared. `src/lib/filters.ts` reads and cleans these values. Searching with
+   both blanks empty shows every report; a fresh visit makes no requests.
 2. **The server asks openFDA five questions at once:** the total number of
    reports, the number of serious ones, the top reactions, reports per day,
    and the 10 newest reports. They run in parallel with `Promise.all`.
@@ -66,14 +67,19 @@ An openFDA API key is optional. To use one, copy `.env.example` to
 .github/workflows/ci.yml  checks and deploy
 wrangler.jsonc            Cloudflare Worker config
 open-next.config.ts       Next.js to Workers adapter config
+scripts/
+  update-ingredients.mjs  refreshes the drug suggestion snapshot
 src/
   app/
     page.tsx            the home page
     layout.tsx          wraps every page: fonts, <html>, <body>
     globals.css         colour tokens and base styles
   components/           the pieces of the page (form, charts, table)
+  data/
+    ingredient-counts.json  snapshot of openFDA's most-reported ingredients
   lib/
     filters.ts          reading the search from the URL
+    ingredients.ts      cleaning ingredient names for suggestions
     openfda/
       types.ts          the shape of openFDA's data
       query.ts          building openFDA request URLs safely
@@ -91,6 +97,11 @@ src/
   mean "no matches", which is a normal result for a search.
 - **User input is sanitised** before going into an openFDA query, so typing
   quotes or colons can't change the meaning of the search.
+- **Drug suggestions come from a snapshot**, not a live request, so loading the
+  page never calls openFDA. openFDA's raw names mix in doses, salts and
+  combinations ("Ivermectin/Pyrantel Pamoate Chewable 272Mcg/652Mg"), so
+  `src/lib/ingredients.ts` reduces them to base names before ranking. Refresh
+  the snapshot with `node scripts/update-ingredients.mjs`.
 - **Charts are plain HTML and CSS** rather than a charting library: fewer
   dependencies, server-rendered, and easy to read.
 - **The "partial year" note uses openFDA's last-updated date**, not the

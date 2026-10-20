@@ -2,24 +2,26 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { SearchForm, SearchFormFallback } from "@/components/SearchForm";
 import { Results, ResultsSkeleton } from "@/components/Results";
-import { hasFilters, parseFilters, searchHref } from "@/lib/filters";
+import { isSearch, parseFilters, searchHref } from "@/lib/filters";
 
 async function Explorer({ searchParams }: PageProps<"/">) {
-  const filters = parseFilters(await searchParams);
+  const params = await searchParams;
+  const filters = parseFilters(params);
 
   return (
     <>
       <SearchForm filters={filters} />
       <div className="mt-16">
-        {hasFilters(filters) ? (
+        {isSearch(params) ? (
           // key resets the skeleton on every new search
           <Suspense key={searchHref(filters)} fallback={<ResultsSkeleton />}>
             <Results filters={filters} />
           </Suspense>
         ) : (
           <p className="max-w-xl text-slate">
-            Type an active ingredient, pick a species, then search. Results come from the US
-            FDA&apos;s public database of animal drug side-effect reports.
+            Fill in either blank, or leave both empty to see every report, then search.
+            Results come from the US FDA&apos;s public database of animal drug side-effect
+            reports.
           </p>
         )}
       </div>

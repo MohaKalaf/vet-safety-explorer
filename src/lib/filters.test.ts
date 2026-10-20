@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasFilters, parseFilters, searchHref, speciesLabel } from "./filters";
+import { isSearch, parseFilters, searchHref, speciesLabel } from "./filters";
 
 describe("parseFilters", () => {
   it("reads ingredient and species", () => {
@@ -24,13 +24,17 @@ describe("parseFilters", () => {
   });
 });
 
-describe("hasFilters", () => {
-  it("is false for an empty search", () => {
-    expect(hasFilters({})).toBe(false);
+describe("isSearch", () => {
+  it("is false on a fresh visit with no params", () => {
+    expect(isSearch({})).toBe(false);
   });
 
-  it("is true when either filter is set", () => {
-    expect(hasFilters({ species: "Dog" })).toBe(true);
+  it("is true for a blank submitted search", () => {
+    expect(isSearch({ ingredient: "", species: "" })).toBe(true);
+  });
+
+  it("is true when only one key is present", () => {
+    expect(isSearch({ species: "Dog" })).toBe(true);
   });
 });
 
