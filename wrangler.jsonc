@@ -12,8 +12,8 @@
     // must match "name" above
     { "binding": "WORKER_SELF_REFERENCE", "service": "vet-safety-explorer" }
   ],
-  // Backs 'use cache'. No id: wrangler creates the namespace on first deploy.
-  "kv_namespaces": [{ "binding": "NEXT_INC_CACHE_KV" }],
+  // Cache for openFDA results (unstable_cache)
+  "kv_namespaces": [{ "binding": "NEXT_INC_CACHE_KV", "id": "ced6d2c8746845bd9b470f913e926125" }],
   "routes": [{ "pattern": "vetsafety.mohammadkalaf.com", "custom_domain": true }],
   "observability": { "enabled": true }
 }
