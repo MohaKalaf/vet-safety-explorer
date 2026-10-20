@@ -1,5 +1,3 @@
-// cacheComponents: anything reading searchParams must be inside <Suspense>.
-
 import { Suspense } from "react";
 import Link from "next/link";
 import { SearchForm, SearchFormFallback } from "@/components/SearchForm";

@@ -9,6 +9,8 @@ The data is the US FDA's public database of animal drug adverse events,
 accessed through the [openFDA API](https://open.fda.gov/apis/animalandveterinary/event/).
 Tracking these reports after a drug goes on sale is called **pharmacovigilance**.
 
+Live at **https://vetsafety.mohammadkalaf.com**
+
 ## Tech stack
 
 | Part | Tool | Why |
@@ -18,6 +20,9 @@ Tracking these reports after a drug goes on sale is called **pharmacovigilance**
 | Styling | Tailwind CSS 4 | Styles written next to the markup they affect |
 | Tests | Vitest | Fast unit tests for the data logic |
 | Data | openFDA REST API | Free, public, no login needed |
+| Hosting | Cloudflare Workers via [OpenNext](https://opennext.js.org/cloudflare) | Runs the server code close to users; free tier |
+| Cache | Workers KV | Stores cached openFDA results between requests |
+| CI/CD | GitHub Actions | Checks every push, deploys `main` |
 
 ## Run it locally
 
@@ -54,11 +59,13 @@ An openFDA API key is optional. To use one, copy `.env.example` to
    `src/lib/openfda/transform.ts`, e.g. adding daily counts up into years.
 4. **Results are cached for a few hours** (`src/lib/openfda/data.ts`), because
    openFDA updates weekly and has a daily request limit.
-5. **The page streams.** The header, form and footer are pre-built and appear
-   instantly; the results stream in when the data arrives (`<Suspense>` in
-   `src/app/page.tsx`).
+5. **The page streams.** The form appears straight away and the results stream
+   in behind a loading skeleton (`<Suspense>` in `src/app/page.tsx`).
 
 ```
+.github/workflows/ci.yml  checks and deploy
+wrangler.jsonc            Cloudflare Worker config
+open-next.config.ts       Next.js to Workers adapter config
 src/
   app/
     page.tsx            the home page
@@ -87,8 +94,23 @@ src/
 - **Charts are plain HTML and CSS** rather than a charting library: fewer
   dependencies, server-rendered, and easy to read.
 - **The "partial year" note uses openFDA's last-updated date**, not the
-  server clock. That's more accurate, and Next.js doesn't allow reading the
-  clock while pre-building pages.
+  server clock, so it follows the data rather than the calendar.
+- **Cache Components is switched off.** On Cloudflare Workers its staged
+  rendering hangs requests, a known adapter bug
+  ([opennextjs-cloudflare#1318](https://github.com/opennextjs/opennextjs-cloudflare/pull/1318)).
+  Caching uses `unstable_cache` instead, stored in Workers KV.
+
+## Deployment
+
+Every push and pull request runs lint, type check, tests and a build in GitHub
+Actions. When those pass on `main`, the app is built for Cloudflare Workers
+and deployed automatically.
+
+To try the Workers build locally (Linux, macOS or WSL):
+
+```bash
+npm run preview
+```
 
 ## Limitations
 

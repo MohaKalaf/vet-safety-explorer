@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vet-safety-explorer",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-19",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    // must match "name" above
+    { "binding": "WORKER_SELF_REFERENCE", "service": "vet-safety-explorer" }
+  ],
+  // Backs 'use cache'. No id: wrangler creates the namespace on first deploy.
+  "kv_namespaces": [{ "binding": "NEXT_INC_CACHE_KV" }],
+  "routes": [{ "pattern": "vetsafety.mohammadkalaf.com", "custom_domain": true }],
+  "observability": { "enabled": true }
+}
