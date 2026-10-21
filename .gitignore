@@ -45,3 +45,11 @@ next-env.d.ts
 .open-next
 .wrangler
 .dev.vars*
+
+# pipeline
+pipeline/raw/
+__pycache__/
+.pytest_cache/
+spark-warehouse/
+metastore_db/
+.databricks/

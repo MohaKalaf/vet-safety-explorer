@@ -27,8 +27,31 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  pipeline:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v7
+
+      # PySpark runs on the JVM
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pipeline/requirements-dev.txt
+
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest tests -q
+
   deploy:
-    needs: check
+    needs: [check, pipeline]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency: deploy
