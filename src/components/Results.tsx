@@ -2,24 +2,11 @@ import { getCachedSafetyOverview } from "@/lib/openfda/data";
 import { OpenFdaError } from "@/lib/openfda/client";
 import { percentSerious } from "@/lib/openfda/transform";
 import { speciesLabel } from "@/lib/filters";
+import { formatDay, numberFormat } from "@/lib/format";
 import type { SafetyOverview, SearchFilters } from "@/lib/openfda/types";
 import { ReactionBars } from "./ReactionBars";
 import { YearColumns } from "./YearColumns";
 import { ReportTable } from "./ReportTable";
-
-const numberFormat = new Intl.NumberFormat("en-GB");
-const dayFormat = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
-
-// "2026-10-05" -> "5 October 2026"
-function formatDay(isoDate: string): string {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  return Number.isNaN(date.getTime()) ? isoDate : dayFormat.format(date);
-}
 
 function describeSearch(filters: SearchFilters): string {
   const drug = filters.ingredient ?? "any drug";

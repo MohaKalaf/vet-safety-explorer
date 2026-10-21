@@ -23,6 +23,8 @@ Live at **https://vetsafety.mohammadkalaf.com**
 | Hosting | Cloudflare Workers via [OpenNext](https://opennext.js.org/cloudflare) | Runs the server code close to users; free tier |
 | Cache | Workers KV | Stores cached openFDA results between requests |
 | CI/CD | GitHub Actions | Checks every push, deploys `main` |
+| Pipeline | PySpark on Databricks (Free Edition) | Bronze/silver/gold tables and signal detection |
+| Pipeline tests | pytest with local Spark | Same transforms tested in CI without Databricks |
 
 ## Run it locally
 
@@ -64,6 +66,7 @@ An openFDA API key is optional. To use one, copy `.env.example` to
    in behind a loading skeleton (`<Suspense>` in `src/app/page.tsx`).
 
 ```
+pipeline/                 PySpark pipeline (see "Data pipeline" below)
 .github/workflows/ci.yml  checks and deploy
 wrangler.jsonc            Cloudflare Worker config
 open-next.config.ts       Next.js to Workers adapter config
@@ -123,6 +126,55 @@ To try the Workers build locally (Linux, macOS or WSL):
 npm run preview
 ```
 
+## Data pipeline
+
+`pipeline/` is a PySpark pipeline that runs as a five-task Databricks Job,
+defined as code in `pipeline/databricks.yml`:
+
+```
+setup → bronze → silver → gold → export
+```
+
+| Layer | Tables | What happens |
+| --- | --- | --- |
+| Bronze | `bronze_reports` | openFDA's quarterly JSON files read with an explicit schema; source file and load time kept |
+| Silver | `silver_reports`, `silver_report_ingredients`, `silver_report_reactions`, `silver_quality_checks` | Duplicates resolved (newest file wins), dates typed, ingredient and reaction names cleaned, data-quality checks run |
+| Gold | `gold_monthly_counts`, `gold_ingredient_features`, `gold_signals` | Monthly counts, a per-drug feature table (volume, serious share, 3-month trend) and disproportionality signals |
+
+**Signals** use the proportional reporting ratio (PRR), stratified by species,
+with a 95% confidence interval and Yates-corrected chi-square. A pair is
+flagged at 3+ cases, PRR ≥ 2 and chi-square ≥ 4 (Evans et al., 2001). The
+`export` task writes flagged signals to `signals.json`, which the site's
+`/signals` page reads.
+
+**Data quality.** Silver stops the job if more than a set share of reports
+have no ID, an unparseable date, no usable ingredient or no reaction. Results
+are saved to `silver_quality_checks` first, so a failed run still shows why.
+
+**Name cleaning** is the same logic as the site's `src/lib/ingredients.ts`,
+written with Spark's built-in functions rather than a Python UDF, so it runs
+in the JVM. Both test suites share the same test cases.
+
+### Running it
+
+1. Deploy the job: `cd pipeline && databricks bundle deploy`
+2. Run it: `databricks bundle run vetsafety_pipeline`. The `setup` task creates
+   the schema and volumes, then downloads from openFDA.
+3. Databricks Free Edition blocks most outbound internet. If the download is
+   blocked, `setup` fails with a message saying so. Download locally with
+   `python pipeline/download.py --since 2023q1`, upload `pipeline/raw/*.json`
+   to the `workspace.vetsafety.raw` volume, and run the job again.
+4. Copy `/Volumes/workspace/vetsafety/exports/signals.json` to
+   `src/data/signals.json` and commit it.
+
+Tests run locally and in CI without Databricks:
+
+```bash
+cd pipeline
+pip install -r requirements-dev.txt   # needs Java 17+
+python -m pytest tests
+```
+
 ## Limitations
 
 - A report means a reaction was noticed after a drug was given. It does not
@@ -130,6 +182,8 @@ npm run preview
   used, so raw counts can't fairly compare two drugs.
 - The data is mostly from the US and is unverified.
 - Searches match the active ingredient, not brand names.
+- PRR compares reporting rates, not risk. A high PRR can come from how a drug is
+  used (e.g. in already-sick animals) rather than the drug itself.
 
 ## Data
 
