@@ -15,7 +15,9 @@ resources:
       environments:
         - environment_key: default
           spec:
-            environment_version: "6"
+            # 4 (17.3 LTS base) rather than latest: 18+ intermittently fails to read
+            # workspace files with Errno 5, which breaks importing vetsafety/*.py
+            environment_version: "4"
       tasks:
         - task_key: setup
           environment_key: default
