@@ -32,6 +32,7 @@ def report(
     serious="false",
     ingredients=("Lotilaner",),
     reactions=("Vomiting",),
+    outcomes=("Recovered/Normal",),
 ):
     """A report shaped like openFDA's, trimmed to the fields the pipeline reads."""
     return {
@@ -43,7 +44,7 @@ def report(
         "drug": [{"brand_name": "X", "route": "Oral",
                   "active_ingredients": [{"name": n} for n in ingredients]}],
         "reaction": [{"veddra_term_name": r, "veddra_version": "11"} for r in reactions],
-        "outcome": [{"medical_status": "Recovered/Normal"}],
+        "outcome": [{"medical_status": o} for o in outcomes],
         "receiver": {"organization": "ignored by the schema"},
     }
 

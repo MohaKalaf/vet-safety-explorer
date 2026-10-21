@@ -28,7 +28,8 @@ def reports(latest: DataFrame) -> DataFrame:
         F.coalesce(F.trim("animal.species"), F.lit("Unknown")).alias("species"),
         (F.col("serious_ae") == "true").alias("serious"),
         F.col("primary_reporter").alias("reporter"),
-        F.col("outcome")[0]["medical_status"].alias("outcome"),
+        # try_element_at: outcome can be an empty list, and [0] raises in ANSI mode
+        F.try_element_at("outcome", F.lit(1))["medical_status"].alias("outcome"),
         "_source_file",
         "_ingested_at",
     )

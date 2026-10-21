@@ -21,7 +21,7 @@ def latest(spark, raw_dir):
         "2024q2.json": [
             report("DUP", reactions=("New reaction",)),
             report("C", ingredients=("Ivermectin/Pyrantel Pamoate Chewable 68Mcg/163Mg", "Unknown"),
-                   reactions=(LETHARGY_V2,)),
+                   reactions=(LETHARGY_V2,), outcomes=()),  # empty outcome list
         ],
     })
     bronze = read_raw(spark, path)
@@ -48,6 +48,7 @@ def test_reports_are_typed(latest):
     assert rows["B"]["received_date"] is None  # invalid date tolerated, not a crash
     assert rows["B"]["species"] == "Unknown"
     assert rows["C"]["serious"] is False
+    assert rows["C"]["outcome"] is None  # empty list, no crash in ANSI mode
 
 
 def test_ingredients_are_cleaned_and_split(latest):

@@ -1,12 +1,13 @@
 """Entry point for each Databricks job task: python jobs/run.py <stage>"""
 
 import json
-import os
 import sys
 from pathlib import Path
 
-# Databricks runs this file directly, so make pipeline/ importable
-sys.path.insert(0, str(Path(os.path.abspath(__file__)).parents[1]))
+# Serverless runs this via exec() with no __file__, so databricks.yml passes the
+# bundle root as the 2nd argument. __file__ is only the fallback for local runs.
+ROOT = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 from pyspark.sql import DataFrame, SparkSession  # noqa: E402
 
@@ -78,6 +79,7 @@ def run_export() -> None:
 
 STAGES = {"setup": setup, "bronze": run_bronze, "silver": run_silver, "gold": run_gold, "export": run_export}
 
-if __name__ == "__main__":
-    spark = SparkSession.builder.getOrCreate()
-    STAGES[sys.argv[1]]()
+# No `if __name__ == "__main__"` guard: under the serverless runner it isn't
+# reliably true, and a skipped stage would still report success.
+spark = SparkSession.builder.getOrCreate()
+STAGES[sys.argv[1]]()

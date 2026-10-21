@@ -31,13 +31,14 @@ def quarter_files(index: dict, since: str) -> list[tuple[str, str]]:
 
 def download(since: str, out: Path) -> list[Path]:
     out.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(INDEX_URL) as res:
+    # timeout: a blocked network should fail fast, not hang the job
+    with urllib.request.urlopen(INDEX_URL, timeout=60) as res:
         index = json.load(res)
 
     saved = []
     for quarter, url in quarter_files(index, since):
         target = out / f"{quarter}.json"
-        with urllib.request.urlopen(url) as res:
+        with urllib.request.urlopen(url, timeout=300) as res:
             with zipfile.ZipFile(io.BytesIO(res.read())) as archive:
                 target.write_bytes(archive.read(archive.namelist()[0]))
         print(f"{quarter}: {target.stat().st_size / 1e6:.1f} MB")

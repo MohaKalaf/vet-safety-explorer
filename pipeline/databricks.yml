@@ -21,31 +21,31 @@ resources:
           environment_key: default
           spark_python_task:
             python_file: jobs/run.py
-            parameters: ["setup"]
+            parameters: ["setup", "${workspace.file_path}"]
         - task_key: bronze
           depends_on: [{ task_key: setup }]
           environment_key: default
           spark_python_task:
             python_file: jobs/run.py
-            parameters: ["bronze"]
+            parameters: ["bronze", "${workspace.file_path}"]
         - task_key: silver
           depends_on: [{ task_key: bronze }]
           environment_key: default
           spark_python_task:
             python_file: jobs/run.py
-            parameters: ["silver"]
+            parameters: ["silver", "${workspace.file_path}"]
         - task_key: gold
           depends_on: [{ task_key: silver }]
           environment_key: default
           spark_python_task:
             python_file: jobs/run.py
-            parameters: ["gold"]
+            parameters: ["gold", "${workspace.file_path}"]
         - task_key: export
           depends_on: [{ task_key: gold }]
           environment_key: default
           spark_python_task:
             python_file: jobs/run.py
-            parameters: ["export"]
+            parameters: ["export", "${workspace.file_path}"]
 
 targets:
   dev:
