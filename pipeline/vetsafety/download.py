@@ -1,6 +1,6 @@
 """Download openFDA animal adverse event files, one JSON file per quarter.
 
-    python pipeline/download.py --since 2023q1 --out pipeline/raw
+    python -m vetsafety.download --since 2023q1 --out raw   (from pipeline/)
 
 Standard library only, so it runs anywhere (your laptop or Databricks).
 """
@@ -49,6 +49,6 @@ def download(since: str, out: Path) -> list[Path]:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--since", default="2023q1", help="first quarter, e.g. 2023q1")
-    parser.add_argument("--out", type=Path, default=Path("pipeline/raw"))
+    parser.add_argument("--out", type=Path, default=Path("raw"))
     args = parser.parse_args()
     download(args.since.lower(), args.out)

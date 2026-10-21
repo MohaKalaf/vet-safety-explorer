@@ -53,3 +53,6 @@ __pycache__/
 spark-warehouse/
 metastore_db/
 .databricks/
+pipeline/dist/
+pipeline/build/
+*.egg-info/

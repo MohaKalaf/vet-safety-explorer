@@ -128,8 +128,9 @@ npm run preview
 
 ## Data pipeline
 
-`pipeline/` is a PySpark pipeline that runs as a five-task Databricks Job,
-defined as code in `pipeline/databricks.yml`:
+`pipeline/` is a PySpark pipeline packaged as a Python wheel and run as a
+five-task Databricks Job on serverless compute, defined as code in
+`pipeline/databricks.yml`:
 
 ```
 setup → bronze → silver → gold → export
@@ -157,15 +158,21 @@ in the JVM. Both test suites share the same test cases.
 
 ### Running it
 
-1. Deploy the job: `cd pipeline && databricks bundle deploy`
+1. Deploy the job: `cd pipeline && databricks bundle deploy`. This builds the
+   wheel (needs Python locally) and uploads it with the job definition.
 2. Run it: `databricks bundle run vetsafety_pipeline`. The `setup` task creates
    the schema and volumes, then downloads from openFDA.
 3. Databricks Free Edition blocks most outbound internet. If the download is
-   blocked, `setup` fails with a message saying so. Download locally with
-   `python pipeline/download.py --since 2023q1`, upload `pipeline/raw/*.json`
-   to the `workspace.vetsafety.raw` volume, and run the job again.
+   blocked, `setup` fails with a message saying so. Download locally from the
+   `pipeline` folder with `python -m vetsafety.download --since 2023q1`, upload
+   `raw/*.json` to the `workspace.vetsafety.raw` volume, and run the job again.
 4. Copy `/Volumes/workspace/vetsafety/exports/signals.json` to
    `src/data/signals.json` and commit it.
+
+The job ships as a wheel rather than loose `.py` files because importing
+modules straight from workspace storage failed on Databricks with
+`OSError: [Errno 5]`. A wheel is installed before the task starts, so nothing
+is read from workspace storage at run time.
 
 Tests run locally and in CI without Databricks:
 

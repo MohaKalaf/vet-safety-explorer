@@ -1,4 +1,4 @@
-from download import quarter_files
+from vetsafety.download import quarter_files
 
 BASE = "https://download.open.fda.gov/animalandveterinary/event"
 
