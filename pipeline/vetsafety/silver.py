@@ -3,7 +3,7 @@
 from pyspark.sql import DataFrame, Window
 from pyspark.sql import functions as F
 
-from vetsafety.names import ingredient_names, reaction_name
+from vetsafety.names import ingredient_names, reaction_category, reaction_name
 
 
 def latest_reports(bronze: DataFrame) -> DataFrame:
@@ -49,5 +49,10 @@ def report_reactions(latest: DataFrame) -> DataFrame:
         latest.select("report_id", F.explode("reaction").alias("r"))
         .select("report_id", reaction_name(F.col("r.veddra_term_name")).alias("reaction"))
         .where(F.col("reaction") != "")
+        .withColumn("category", reaction_category(F.col("reaction")))
         .distinct()
     )
+
+
+def clinical(reactions: DataFrame) -> DataFrame:
+    return reactions.where(F.col("category") == "clinical")

@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import functions as F
 
 from vetsafety import bronze, config, export, gold, quality, silver
 from vetsafety.download import download
@@ -53,6 +54,10 @@ def run_silver(spark: SparkSession) -> None:
     save(spark, quality.as_dataframe(spark, checks), "silver_quality_checks")
     quality.raise_if_failed(checks)
 
+    categories = spark.table(config.table("silver_report_reactions")).groupBy("category").count()
+    for row in categories.orderBy(F.desc("count")).collect():
+        print(f"  {row['category']}: {row['count']} reaction rows")
+
 
 def run_gold(spark: SparkSession) -> None:
     reports = spark.table(config.table("silver_reports"))
@@ -62,7 +67,7 @@ def run_gold(spark: SparkSession) -> None:
     save(spark, gold.monthly_counts(reports, ingredients), "gold_monthly_counts")
     monthly = spark.table(config.table("gold_monthly_counts"))
     save(spark, gold.features(monthly), "gold_ingredient_features")
-    save(spark, gold.signals(reports, ingredients, reactions), "gold_signals")
+    save(spark, gold.signals(reports, ingredients, silver.clinical(reactions)), "gold_signals")
 
 
 def run_export(spark: SparkSession) -> None:

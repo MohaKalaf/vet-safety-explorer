@@ -1,6 +1,6 @@
 import pytest
 
-from vetsafety.names import ingredient_names, reaction_name
+from vetsafety.names import ingredient_names, reaction_category, reaction_name
 
 # Same cases as src/lib/ingredients.test.ts, so the two implementations stay in step.
 
@@ -43,3 +43,26 @@ def test_reaction_see_also_notes_are_dropped(spark):
     df = spark.createDataFrame(
         [("Lethargy (see also Central nervous system depression in 'Neurological')",)], "t string")
     assert df.select(reaction_name(df.t).alias("r")).first()["r"] == "Lethargy"
+
+
+@pytest.mark.parametrize("term, expected", [
+    ("Vomiting", "clinical"),
+    ("Implant site abscess", "clinical"),  # "implant" only counts as a product with a comma
+    ("Injection site swelling", "clinical"),
+    ("Found dead", "clinical"),
+    ("Lack of efficacy (ectoparasite) - tick NOS", "lack_of_efficacy"),
+    ("INEFFECTIVE, SEDATION", "lack_of_efficacy"),
+    ("Applicator, Abnormal", "product_problem"),
+    ("Tubes, Leaking", "product_problem"),
+    ("Implant, Damaged", "product_problem"),
+    ("Potency, Low", "product_problem"),
+    ("Suspect counterfeit product", "product_problem"),
+    ("Labeled drug-species interaction", "use_error"),
+    ("Drug administration duration too long", "use_error"),
+    ("Product compounding error", "use_error"),
+    ("Unrelated death", "administrative"),
+    ("No sign", "administrative"),
+])
+def test_reaction_categories(spark, term, expected):
+    df = spark.createDataFrame([(term,)], "t string")
+    assert df.select(reaction_category(df.t).alias("c")).first()["c"] == expected

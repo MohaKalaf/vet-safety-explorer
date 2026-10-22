@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import data from "@/data/signals.json";
 import { SignalTable } from "@/components/SignalTable";
-import { speciesLabel } from "@/lib/filters";
 import { formatDay, numberFormat } from "@/lib/format";
-import { pickSpecies, signalsFor, speciesList, type SignalSnapshot } from "@/lib/signals";
+import { pickSpecies, signalsFor, speciesList, tabLabel, type SignalSnapshot } from "@/lib/signals";
 
 export const metadata: Metadata = {
   title: "Signals | Vet Safety Explorer",
@@ -12,10 +11,6 @@ export const metadata: Metadata = {
 };
 
 const snapshot = data as SignalSnapshot;
-
-function capitalise(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
 
 export default async function SignalsPage({ searchParams }: PageProps<"/signals">) {
   const requested = (await searchParams).species;
@@ -39,6 +34,10 @@ export default async function SignalsPage({ searchParams }: PageProps<"/signals"
           A pair is flagged when it has at least 3 reports, a PRR of 2 or more and a chi-square of
           4 or more, the usual screening thresholds. Drugs with fewer than 50 reports are left
           out, because their ratios swing too much.
+        </p>
+        <p>
+          Only clinical signs count. Product complaints (a leaking tube), medication errors and
+          reports that a drug didn&apos;t work are left out, as are reports with no species.
         </p>
       </div>
 
@@ -69,12 +68,12 @@ export default async function SignalsPage({ searchParams }: PageProps<"/signals"
                     : "rounded-md bg-bar-soft px-3 py-1.5 hover:bg-rule"
                 }
               >
-                {capitalise(speciesLabel(option))}
+                {tabLabel(option)}
               </Link>
             ))}
           </nav>
 
-          <section aria-label={`Signals in ${speciesLabel(species)}`} className="mt-6">
+          <section aria-label={`Signals in ${tabLabel(species)}`} className="mt-6">
             <SignalTable signals={signalsFor(snapshot, species)} />
           </section>
         </>

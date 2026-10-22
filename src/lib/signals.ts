@@ -20,13 +20,31 @@ export interface SignalSnapshot {
   signals: Signal[];
 }
 
-// Most signals first
+// Pets and the main farm species first, then anything else by number of signals
+const PREFERRED = ["Dog", "Cat", "Horse", "Cattle", "Human"];
+
+const TAB_LABELS: Record<string, string> = {
+  Dog: "Dogs",
+  Cat: "Cats",
+  Horse: "Horses",
+  Cattle: "Cattle",
+  Human: "People (exposure)", // owners or vets exposed to an animal drug
+};
+
 export function speciesList(snapshot: SignalSnapshot): string[] {
   const counts = new Map<string, number>();
   for (const s of snapshot.signals) counts.set(s.species, (counts.get(s.species) ?? 0) + 1);
+  const rank = (species: string) => {
+    const i = PREFERRED.indexOf(species);
+    return i === -1 ? PREFERRED.length : i;
+  };
   return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .sort((a, b) => rank(a[0]) - rank(b[0]) || b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([species]) => species);
+}
+
+export function tabLabel(species: string): string {
+  return TAB_LABELS[species] ?? species;
 }
 
 export function pickSpecies(requested: string | undefined, available: string[]): string | null {

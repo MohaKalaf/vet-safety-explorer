@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import snapshotFile from "../data/signals.json";
-import { pickSpecies, signalsFor, speciesList, type Signal, type SignalSnapshot } from "./signals";
+import { pickSpecies, signalsFor, speciesList, tabLabel, type Signal, type SignalSnapshot } from "./signals";
 
 function signal(species: string, ingredient: string, ciLow: number): Signal {
   return { species, ingredient, reaction: "Seizure", cases: 5, ingredientReports: 80, prr: ciLow * 2, ciLow, ciHigh: ciLow * 4, chi2: 10 };
@@ -15,12 +15,25 @@ const snapshot: SignalSnapshot = {
     signal("Cat", "a", 3),
     signal("Dog", "b", 2),
     signal("Dog", "c", 5),
+    signal("Human", "d", 4),
+    signal("Sheep", "e", 2),
+    signal("Goat", "f", 2),
+    signal("Goat", "g", 2),
+    signal("Goat", "h", 2),
   ],
 };
 
 describe("speciesList", () => {
-  it("orders species by number of signals", () => {
-    expect(speciesList(snapshot)).toEqual(["Dog", "Cat"]);
+  it("puts the main species first, then the rest by number of signals", () => {
+    expect(speciesList(snapshot)).toEqual(["Dog", "Cat", "Human", "Goat", "Sheep"]);
+  });
+});
+
+describe("tabLabel", () => {
+  it("names known species and passes others through", () => {
+    expect(tabLabel("Dog")).toBe("Dogs");
+    expect(tabLabel("Human")).toBe("People (exposure)");
+    expect(tabLabel("Goat")).toBe("Goat");
   });
 });
 

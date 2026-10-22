@@ -11,14 +11,27 @@ def test_end_to_end(spark, raw_dir, monkeypatch):
         report(f"S{i}", ingredients=("Drugamab Oxime 10Mg",), reactions=("Seizure NOS",))
         for i in range(12)
     ]
+    # Both of these would be flagged without the filters. Each needs a few background
+    # cases too: a reaction seen with only one drug has no PRR at all.
+    leaky_tubes = [  # product complaint, not a reaction
+        report(f"T{i}", ingredients=("Tubeazole",), reactions=("Tubes, Leaking",)) for i in range(12)
+    ] + [report(f"TB{i}", ingredients=("Milbemycin",), reactions=("Tubes, Leaking",)) for i in range(3)]
+    no_animal = [  # strong pattern, but no species named
+        report(f"U{i}", species=None, ingredients=("Unknownazole",), reactions=("Seizure NOS",))
+        for i in range(12)
+    ] + [
+        report(f"UB{i}", species=None, ingredients=("Ivermectin",),
+               reactions=("Seizure NOS",) if i < 3 else ("Vomiting",))
+        for i in range(60)
+    ]
     background = [
         report(f"B{i}", date=f"2024{1 + i % 12:02d}01",
                ingredients=("Ivermectin, Pyrantel" if i % 2 else "Milbemycin Oxime",),
                reactions=("Seizure NOS",) if i < 3 else ("Vomiting",))
         for i in range(120)
     ]
-    path = raw_dir({"2024q1.json": seizure_drug[:6] + background[:60],
-                    "2024q2.json": seizure_drug[6:] + background[60:]})
+    path = raw_dir({"2024q1.json": seizure_drug[:6] + leaky_tubes + background[:60],
+                    "2024q2.json": seizure_drug[6:] + no_animal + background[60:]})
 
     raw = bronze.read_raw(spark, path)
     latest = silver.latest_reports(raw)
@@ -30,9 +43,10 @@ def test_end_to_end(spark, raw_dir, monkeypatch):
     quality.raise_if_failed(checks)  # clean data passes
 
     monkeypatch.setattr(export, "MIN_INGREDIENT_REPORTS", 10)
-    snapshot = export.build_snapshot(gold.signals(reports, ingredients, reactions), reports)
+    signals = gold.signals(reports, ingredients, silver.clinical(reactions))
+    snapshot = export.build_snapshot(signals, reports)
     json.dumps(snapshot)  # must be JSON-serialisable for the website
 
-    assert snapshot["reports"] == 132
+    assert snapshot["reports"] == 132 + 15 + 72
     flagged = {(s["ingredient"], s["reaction"]) for s in snapshot["signals"]}
     assert flagged == {("drugamab", "Seizure NOS")}

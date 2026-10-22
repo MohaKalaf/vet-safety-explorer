@@ -113,6 +113,12 @@ src/
   rendering hangs requests, a known adapter bug
   ([opennextjs-cloudflare#1318](https://github.com/opennextjs/opennextjs-cloudflare/pull/1318)).
   Caching uses `unstable_cache` instead, stored in Workers KV.
+- **Signals use clinical signs only.** VeDDRA terms also cover product
+  complaints ("Tubes, Leaking"), medication errors, lack of efficacy and
+  admin codes. `pipeline/vetsafety/names.py` sorts every term into one of these
+  categories, and only clinical ones go into the PRR, as in standard
+  pharmacovigilance. Reports with no species are dropped from the export, since
+  nearly all of them are product complaints.
 
 ## Deployment
 
@@ -191,6 +197,10 @@ python -m pytest tests
 - Searches match the active ingredient, not brand names.
 - PRR compares reporting rates, not risk. A high PRR can come from how a drug is
   used (e.g. in already-sick animals) rather than the drug itself.
+- Combination products show up once per ingredient. An ear treatment with three
+  active ingredients produces three near-identical signals.
+- openFDA truncates some long ingredient names (e.g. "trenbolone acet"), so a
+  few appear cut off.
 
 ## Data
 

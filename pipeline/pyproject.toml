@@ -4,7 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vetsafety"
-version = "0.1.0"
+# bump on every pipeline change so Databricks never reuses the old wheel
+version = "0.2.0"
 description = "PySpark pipeline for openFDA animal adverse event reports"
 requires-python = ">=3.10"
 # pyspark is not listed: Databricks provides it, and installing it there would conflict

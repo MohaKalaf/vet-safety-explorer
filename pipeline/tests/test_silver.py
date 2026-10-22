@@ -61,9 +61,9 @@ def test_ingredients_are_cleaned_and_split(latest):
 
 def test_reaction_versions_merge(latest):
     _, df = latest
-    rows = {(r["report_id"], r["reaction"]) for r in report_reactions(df).collect()}
-    assert ("A", "Lethargy") in rows
-    assert ("C", "Lethargy") in rows
+    rows = {(r["report_id"], r["reaction"], r["category"]) for r in report_reactions(df).collect()}
+    assert ("A", "Lethargy", "clinical") in rows
+    assert ("C", "Lethargy", "clinical") in rows
 
 
 def test_quality_checks_count_problems(latest):

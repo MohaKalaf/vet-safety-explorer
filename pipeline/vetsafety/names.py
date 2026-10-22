@@ -50,3 +50,35 @@ def ingredient_names(term: Column) -> Column:
 
 def reaction_name(term: Column) -> Column:
     return F.trim(F.regexp_replace(F.regexp_replace(term, SEE_ALSO, ""), r"\s+", " "))
+
+
+# Not every VeDDRA term is a clinical sign. First match wins; anything else is
+# "clinical". Signals use clinical terms only, as in standard pharmacovigilance.
+REACTION_CATEGORIES = [
+    ("lack_of_efficacy", r"(?i)^(partial )?lack of efficacy|^ineffective\b"),
+    (
+        "product_problem",
+        r"(?i)applicator|administration device|device|"
+        r"^(tubes?|vials?|bottles?|containers?|caps?|closure|seal|adaptor|dispenser|syringe|"
+        r"insert|implant|capsules?|labels?|suspension|solution/suspension|precipitate)\b.*,|"
+        r"^(underfilling|potency)\b|product (syringe|label|defect)|lot #|counterfeit|"
+        r"packaging|locking mechanism|broken components",
+    ),
+    (
+        "use_error",
+        r"(?i)medication error|administration error|drug administ|incorrect (route|storage)|"
+        r"wrong technique|labeled drug-species|off-label|overdose|intentional misuse|"
+        r"difficult(y)? (of|to) use|instructions for use|compounding error|needlestick",
+    ),
+    (
+        "administrative",
+        r"(?i)^(unrelated death|no sign|uncoded sign|unclassifiable adverse event|residues in meat)",
+    ),
+]
+
+
+def reaction_category(term: Column) -> Column:
+    category = F.lit("clinical")
+    for name, pattern in reversed(REACTION_CATEGORIES):
+        category = F.when(term.rlike(pattern), name).otherwise(category)
+    return category
