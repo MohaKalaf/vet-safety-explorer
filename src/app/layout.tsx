@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "@fontsource-variable/ibm-plex-sans";
 import { NavLink } from "@/components/NavLink";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,18 +16,24 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    // Extensions add attributes to <html> before hydration. Only silences this element.
+    // The theme script and extensions both add attributes to <html> before hydration.
+    // Only silences this element.
     <html lang="en-GB" className="h-full antialiased" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-full">
         <div className="mx-auto max-w-5xl px-4 sm:px-8">
-          <header className="flex items-baseline justify-between gap-6 border-b border-rule py-5">
-            <Link href="/" className="font-medium">
+          {/* Phones: title and theme on one row, nav below */}
+          <header className="flex flex-wrap items-center gap-x-6 gap-y-4 border-b border-rule py-5">
+            <Link href="/" className="mr-auto font-medium">
               Vet Safety Explorer
             </Link>
-            <nav className="flex gap-5 text-sm">
+            <nav className="order-last flex w-full gap-5 text-sm sm:order-none sm:w-auto">
               <NavLink href="/">Explorer</NavLink>
               <NavLink href="/signals">Signals</NavLink>
             </nav>
+            <ThemeToggle />
           </header>
 
           {children}

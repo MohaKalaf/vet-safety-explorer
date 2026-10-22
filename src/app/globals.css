@@ -1,27 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #f6f8fb;
-  --ink: #14213d;
-  --slate: #5b6b82;
-  --rule: #d7dee8;
-  --bar: #2f4a7a;
-  --bar-soft: #e3e9f2;
-  --signal: #c0275d;
-  --signal-soft: #fbe7ee;
+  /* light-dark() follows color-scheme: the system setting, unless data-theme overrides it */
+  color-scheme: light dark;
+  --paper: light-dark(#f6f8fb, #0f1626);
+  --ink: light-dark(#14213d, #e6ebf3);
+  --slate: light-dark(#5b6b82, #9aa8bd);
+  --rule: light-dark(#d7dee8, #26324a);
+  --bar: light-dark(#2f4a7a, #8fb0e3);
+  --bar-soft: light-dark(#e3e9f2, #1b2740);
+  --signal: light-dark(#c0275d, #f06a94);
+  --signal-soft: light-dark(#fbe7ee, #3a1a29);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #0f1626;
-    --ink: #e6ebf3;
-    --slate: #9aa8bd;
-    --rule: #26324a;
-    --bar: #8fb0e3;
-    --bar-soft: #1b2740;
-    --signal: #f06a94;
-    --signal-soft: #3a1a29;
-  }
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 @theme inline {

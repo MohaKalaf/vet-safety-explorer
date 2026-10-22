@@ -1,15 +1,73 @@
 # Vet Safety Explorer
 
-A web app for exploring side-effect reports for veterinary medicines. Pick an
-active ingredient and a species, and it shows how many reports there are, what
-share were serious, the most reported reactions, the yearly trend and the
-latest individual reports.
-
-The data is the US FDA's public database of animal drug adverse events,
-accessed through the [openFDA API](https://open.fda.gov/apis/animalandveterinary/event/).
-Tracking these reports after a drug goes on sale is called **pharmacovigilance**.
+Explore side-effect reports for veterinary medicines, and see which reactions
+are reported unusually often with a drug.
 
 Live at **https://vetsafety.mohammadkalaf.com**
+
+The data is the US FDA's public database of animal drug adverse events,
+accessed through [openFDA](https://open.fda.gov/apis/animalandveterinary/event/).
+Tracking these reports after a drug goes on sale is called
+**pharmacovigilance**. The project has two parts:
+
+- **Explorer** (`/`): pick an active ingredient and a species to see how many
+  reports there are, what share were serious, the most reported reactions, the
+  yearly trend and the latest individual reports. Data comes live from the
+  openFDA API.
+- **Signals** (`/signals`): a PySpark pipeline on Databricks processes about
+  260,000 reports from 2023 onwards and flags drug and reaction pairs that are
+  reported more often than expected, using the proportional reporting ratio
+  (PRR).
+
+![Explorer: report totals, most reported reactions and reports per year](docs/screenshots/explorer.png)
+
+![Signals: drug and reaction pairs for dogs, sorted by number of reports](docs/screenshots/signals.png)
+
+## Does it find real signals?
+
+In December 2024 the FDA
+[wrote to vets](https://www.fda.gov/animal-veterinary/product-safety-information/dear-veterinarian-letter-notifying-veterinarians-about-adverse-events-reported-dogs-treated-librela)
+about adverse events reported in dogs given Librela (bedinvetmab), a monthly
+arthritis injection. The letter lists ataxia, seizures and other neurological
+signs, paresis, recumbency, urinary incontinence, polyuria and polydipsia, and
+death, including euthanasia.
+
+The pipeline knows nothing about that letter, but the strongest-supported dog
+signals for bedinvetmab include the same reactions (limb weakness is the plain
+term for paresis):
+
+| Reaction | Reports | PRR |
+| --- | ---: | ---: |
+| Urinary incontinence | 1,418 | 21.5 |
+| Limb weakness | 1,209 | 19.9 |
+| Polyuria | 1,575 | 15.6 |
+| Polydipsia | 1,687 | 15.2 |
+| Death by euthanasia | 2,511 | 8.0 |
+| Ataxia | 1,689 | 6.2 |
+
+From the snapshot run on 22 October 2026, out of 19,619 bedinvetmab reports
+in dogs. This shows the method picks up a known problem, not that it would
+have found it first: the data runs to mid-2026, and publicity after a warning
+tends to bring in more reports (stimulated reporting).
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph job ["Databricks job (PySpark)"]
+    files[openFDA quarterly files] --> bronze[Bronze] --> silver[Silver] --> gold[Gold] --> json[signals.json]
+  end
+  subgraph site ["Website"]
+    browser[Browser] --> worker[Next.js on Cloudflare Workers]
+    worker --> api[openFDA API]
+    worker <--> kv[(Workers KV cache)]
+  end
+  json -- committed to the repo --> worker
+```
+
+The Explorer asks openFDA live, so it is always current. Signals need every
+report at once, which the API can't provide, so they come from the bulk files
+and are refreshed by re-running the job.
 
 ## Tech stack
 
@@ -64,9 +122,17 @@ An openFDA API key is optional. To use one, copy `.env.example` to
    openFDA updates weekly and has a daily request limit.
 5. **The page streams.** The form appears straight away and the results stream
    in behind a loading skeleton (`<Suspense>` in `src/app/page.tsx`).
+6. **The Signals page reads a JSON file** written by the pipeline
+   (`src/data/signals.json`), so it needs no database and no requests at run
+   time. Sorting the table happens in the browser.
+7. **Light, dark or system theme.** Colours are CSS variables using
+   `light-dark()`, so they follow the system setting unless a choice is saved.
+   A one-line script in `<head>` applies a saved choice before the first paint,
+   so the page never flashes the wrong theme.
 
 ```
 pipeline/                 PySpark pipeline (see "Data pipeline" below)
+docs/screenshots/         images used in this README
 .github/workflows/ci.yml  checks and deploy
 wrangler.jsonc            Cloudflare Worker config
 open-next.config.ts       Next.js to Workers adapter config
@@ -74,22 +140,26 @@ scripts/
   update-ingredients.mjs  refreshes the drug suggestion snapshot
 src/
   app/
-    page.tsx            the home page
-    layout.tsx          wraps every page: fonts, <html>, <body>
+    page.tsx            the Explorer page
+    signals/page.tsx    the Signals page
+    layout.tsx          wraps every page: header, footer, theme script
     globals.css         colour tokens and base styles
-  components/           the pieces of the page (form, charts, table)
+  components/           the pieces of the page (form, charts, tables, theme toggle)
   data/
     ingredient-counts.json  snapshot of openFDA's most-reported ingredients
+    signals.json            flagged signals exported by the pipeline
   lib/
     filters.ts          reading the search from the URL
     ingredients.ts      cleaning ingredient names for suggestions
+    signals.ts          species tabs and sorting for the Signals page
+    theme.ts            theme names and the no-flash script
     openfda/
       types.ts          the shape of openFDA's data
       query.ts          building openFDA request URLs safely
       client.ts         fetching from openFDA
       transform.ts      reshaping raw data for the UI
       data.ts           cached version used by the page
-      *.test.ts         unit tests
+    *.test.ts           unit tests, next to the code they test
 ```
 
 ## Design decisions
@@ -119,6 +189,11 @@ src/
   categories, and only clinical ones go into the PRR, as in standard
   pharmacovigilance. Reports with no species are dropped from the export, since
   nearly all of them are product complaints.
+- **Signals are sorted by number of reports by default**, not by PRR. When a
+  reaction almost never appears with other drugs, the PRR divides by nearly
+  zero, so 3 reports can score 5,000. Sorting by reports puts the
+  best-supported signals first, and the pipeline keeps each species' top 100
+  in the same order. Any column can be clicked to sort by it instead.
 
 ## Deployment
 
