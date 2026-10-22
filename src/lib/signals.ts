@@ -52,10 +52,36 @@ export function pickSpecies(requested: string | undefined, available: string[]):
   return available[0] ?? null;
 }
 
-// Ranked by the CI's lower bound: a big PRR from 3 cases is less convincing than
-// a smaller one from 300, and the lower bound accounts for that.
 export function signalsFor(snapshot: SignalSnapshot, species: string): Signal[] {
-  return snapshot.signals
-    .filter((s) => s.species === species)
-    .sort((a, b) => b.ciLow - a.ciLow);
+  return snapshot.signals.filter((s) => s.species === species);
+}
+
+export type SortKey = "drug" | "reaction" | "cases" | "prr" | "ci";
+
+export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "cases", label: "Most reports" },
+  { key: "prr", label: "Highest PRR" },
+  { key: "ci", label: "Highest CI lower bound" },
+  { key: "drug", label: "Drug A-Z" },
+  { key: "reaction", label: "Reaction A-Z" },
+];
+
+// Most reports first by default. Sorting by PRR or even the CI lower bound puts
+// 3-case pairs on top whenever the reaction is near-unique to one drug.
+export const DEFAULT_SORT: SortKey = "cases";
+
+const COMPARE: Record<SortKey, (a: Signal, b: Signal) => number> = {
+  drug: (a, b) => a.ingredient.localeCompare(b.ingredient),
+  reaction: (a, b) => a.reaction.localeCompare(b.reaction),
+  cases: (a, b) => b.cases - a.cases,
+  prr: (a, b) => b.prr - a.prr,
+  ci: (a, b) => b.ciLow - a.ciLow,
+};
+
+// Each key has a natural direction (numbers high to low, text A-Z); reversed flips it
+export function sortSignals(signals: Signal[], key: SortKey, reversed = false): Signal[] {
+  const direction = reversed ? -1 : 1;
+  return [...signals].sort(
+    (a, b) => direction * COMPARE[key](a, b) || b.ciLow - a.ciLow || a.ingredient.localeCompare(b.ingredient),
+  );
 }

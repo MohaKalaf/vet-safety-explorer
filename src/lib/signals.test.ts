@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import snapshotFile from "../data/signals.json";
-import { pickSpecies, signalsFor, speciesList, tabLabel, type Signal, type SignalSnapshot } from "./signals";
+import { pickSpecies, signalsFor, sortSignals, speciesList, tabLabel, type Signal, type SignalSnapshot } from "./signals";
 
-function signal(species: string, ingredient: string, ciLow: number): Signal {
-  return { species, ingredient, reaction: "Seizure", cases: 5, ingredientReports: 80, prr: ciLow * 2, ciLow, ciHigh: ciLow * 4, chi2: 10 };
+function signal(species: string, ingredient: string, ciLow: number, cases = 5): Signal {
+  return { species, ingredient, reaction: "Seizure", cases, ingredientReports: 80, prr: ciLow * 2, ciLow, ciHigh: ciLow * 4, chi2: 10 };
 }
 
 const snapshot: SignalSnapshot = {
@@ -53,8 +53,28 @@ describe("pickSpecies", () => {
 });
 
 describe("signalsFor", () => {
-  it("filters by species and ranks by CI lower bound", () => {
-    expect(signalsFor(snapshot, "Dog").map((s) => s.ingredient)).toEqual(["c", "b"]);
+  it("filters by species", () => {
+    expect(signalsFor(snapshot, "Dog").map((s) => s.ingredient)).toEqual(["b", "c"]);
+  });
+});
+
+describe("sortSignals", () => {
+  const rows = [signal("Dog", "beta", 900, 3), signal("Dog", "alpha", 4, 165), signal("Dog", "gamma", 6, 165)];
+  const order = (key: Parameters<typeof sortSignals>[1], reversed = false) =>
+    sortSignals(rows, key, reversed).map((s) => s.ingredient);
+
+  it("puts the most reports first, ties broken by CI lower bound", () => {
+    expect(order("cases")).toEqual(["gamma", "alpha", "beta"]);
+  });
+
+  it("sorts numbers high to low and text A-Z", () => {
+    expect(order("prr")).toEqual(["beta", "gamma", "alpha"]);
+    expect(order("drug")).toEqual(["alpha", "beta", "gamma"]);
+  });
+
+  it("can reverse, and leaves the input alone", () => {
+    expect(order("drug", true)).toEqual(["gamma", "beta", "alpha"]);
+    expect(rows.map((s) => s.ingredient)).toEqual(["beta", "alpha", "gamma"]);
   });
 });
 

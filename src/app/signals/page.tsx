@@ -54,6 +54,7 @@ export default async function SignalsPage({ searchParams }: PageProps<"/signals"
               : ""}
             , processed by a PySpark pipeline on Databricks
             {snapshot.generated ? ` on ${formatDay(snapshot.generated)}` : ""}.
+            <span className="hidden sm:inline"> Click a column heading to sort.</span>
           </p>
 
           <nav aria-label="Species" className="mt-10 flex flex-wrap gap-2 text-sm">

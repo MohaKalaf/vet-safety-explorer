@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { searchHref } from "@/lib/filters";
 import { numberFormat } from "@/lib/format";
-import type { Signal } from "@/lib/signals";
+import { DEFAULT_SORT, SORT_OPTIONS, sortSignals, type Signal, type SortKey } from "@/lib/signals";
 
 const THRESHOLD = 2;
 
@@ -52,14 +55,72 @@ function DrugLink({ signal }: { signal: Signal }) {
   );
 }
 
+interface Sort {
+  key: SortKey;
+  reversed: boolean;
+}
+
+function SortHeader({ label, column, sort, onSort, align = "left", className = "" }: {
+  label: string;
+  column: SortKey;
+  sort: Sort;
+  onSort: (key: SortKey) => void;
+  align?: "left" | "right";
+  className?: string;
+}) {
+  const active = sort.key === column;
+  const descending = column === "drug" || column === "reaction" ? sort.reversed : !sort.reversed;
+  return (
+    <th
+      scope="col"
+      aria-sort={active ? (descending ? "descending" : "ascending") : undefined}
+      className={`py-2 font-normal ${align === "right" ? "text-right" : ""} ${className}`}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className={`inline-flex cursor-pointer items-center gap-1 hover:text-ink ${active ? "text-ink" : ""} ${
+          align === "right" ? "flex-row-reverse" : ""
+        }`}
+      >
+        {label}
+        <span aria-hidden="true" className={`text-[0.7em] ${active ? "" : "invisible"}`}>
+          {descending ? "▼" : "▲"}
+        </span>
+      </button>
+    </th>
+  );
+}
+
 export function SignalTable({ signals }: { signals: Signal[] }) {
+  const [sort, setSort] = useState<Sort>({ key: DEFAULT_SORT, reversed: false });
   const max = scaleMax(signals);
+  const rows = sortSignals(signals, sort.key, sort.reversed);
+
+  // Clicking the active column flips it, a new column starts in its natural direction
+  const onSort = (key: SortKey) =>
+    setSort((current) => ({ key, reversed: current.key === key ? !current.reversed : false }));
 
   return (
     <>
+      <label className="mb-3 flex items-center gap-2 text-sm text-slate sm:hidden">
+        Sort by
+        <select
+          value={sort.key}
+          onChange={(e) => setSort({ key: e.target.value as SortKey, reversed: false })}
+          className="rounded-md bg-bar-soft px-2 py-1 text-ink"
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.key} value={option.key}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
       {/* 5 columns don't fit on phones */}
       <ul className="divide-y divide-rule border-y border-rule text-sm sm:hidden">
-        {signals.map((s) => (
+        {rows.map((s) => (
           <li key={`${s.ingredient}|${s.reaction}`} className="py-3">
             <div className="flex items-baseline justify-between gap-3">
               <DrugLink signal={s} />
@@ -77,15 +138,15 @@ export function SignalTable({ signals }: { signals: Signal[] }) {
       <table className="hidden w-full text-left text-sm sm:table">
         <thead className="text-slate">
           <tr className="border-b border-rule">
-            <th scope="col" className="py-2 pr-4 font-normal">Drug</th>
-            <th scope="col" className="py-2 pr-4 font-normal">Reaction</th>
-            <th scope="col" className="py-2 pr-4 text-right font-normal">Reports</th>
-            <th scope="col" className="py-2 pr-4 text-right font-normal">PRR</th>
-            <th scope="col" className="w-1/4 py-2 font-normal">95% CI</th>
+            <SortHeader label="Drug" column="drug" sort={sort} onSort={onSort} className="pr-4" />
+            <SortHeader label="Reaction" column="reaction" sort={sort} onSort={onSort} className="pr-4" />
+            <SortHeader label="Reports" column="cases" sort={sort} onSort={onSort} align="right" className="pr-4" />
+            <SortHeader label="PRR" column="prr" sort={sort} onSort={onSort} align="right" className="pr-4" />
+            <SortHeader label="95% CI" column="ci" sort={sort} onSort={onSort} className="w-1/4" />
           </tr>
         </thead>
         <tbody>
-          {signals.map((s) => (
+          {rows.map((s) => (
             <tr key={`${s.ingredient}|${s.reaction}`} className="border-b border-rule align-middle">
               <td className="py-3 pr-4">
                 <DrugLink signal={s} />

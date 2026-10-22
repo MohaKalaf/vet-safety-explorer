@@ -9,6 +9,7 @@ from pyspark.sql import functions as F
 MIN_INGREDIENT_REPORTS = 50
 # No animal named: almost all product complaints rather than reactions
 EXCLUDED_SPECIES = ["Unknown"]
+# Keeps the best-supported signals, the same order the website shows by default
 MAX_PER_SPECIES = 100
 
 
@@ -23,7 +24,7 @@ def build_snapshot(signals: DataFrame, reports: DataFrame) -> dict:
         signals.where("is_signal")
         .where(F.col("ingredient_reports") >= MIN_INGREDIENT_REPORTS)
         .where(~F.col("species").isin(*EXCLUDED_SPECIES))
-        .orderBy("species", F.desc("prr_ci_low"))
+        .orderBy("species", F.desc("a"), F.desc("prr_ci_low"))
         .collect()
     )
 
